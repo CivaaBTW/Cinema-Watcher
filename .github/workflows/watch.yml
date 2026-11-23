@@ -34,5 +34,7 @@ jobs:
       - name: Run watcher
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           TEST_ALERT: ${{ github.event.inputs.test_alert || 'false' }}
         run: python watcher.py
