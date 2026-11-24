@@ -20,8 +20,7 @@ NTFY_TOKEN = os.environ.get("NTFY_TOKEN", "").strip()
 DISCORD_WEBHOOK = os.environ.get("DISCORD_WEBHOOK", "").strip()
 TEST_ALERT = os.environ.get("TEST_ALERT", "false").lower() == "true"
 
-# 24 checks x 30 seconds = ~12 minutes per GitHub Actions cron cycle
-MAX_CHECKS = 24
+RUN_FOR_SECONDS = 11 * 60
 SLEEP_SECONDS = 30
 
 
@@ -137,10 +136,13 @@ def main() -> None:
         print("Test alert confirmed.")
         return
 
-    with sync_playwright() as p:
+with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         try:
-            for attempt in range(1, MAX_CHECKS + 1):
+            deadline = time.monotonic() + RUN_FOR_SECONDS
+            attempt = 0
+            while time.monotonic() < deadline:
+                attempt += 1
                 found = scan_once(browser)
                 if found:
                     msg = (
@@ -151,9 +153,12 @@ def main() -> None:
                     print(f"[Check {attempt}] MATCH FOUND: {found}")
                     return
 
-                print(f"[Check {attempt}/{MAX_CHECKS}] Not live at Lisboeta yet.")
-                if attempt < MAX_CHECKS:
+                print(f"[Check {attempt}] Not live at Lisboeta yet.")
+                remaining = deadline - time.monotonic()
+                if remaining > SLEEP_SECONDS:
                     time.sleep(SLEEP_SECONDS)
+                else:
+                    break
         finally:
             browser.close()
 
