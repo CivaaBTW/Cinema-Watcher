@@ -13,13 +13,17 @@ URLS = [
 KEYWORDS = ["part three", "doomsday", "第三部", "末日"]
 
 # Patterns to spot mid-December date tabs if Lisboeta opens them
-DEC_DATE_PATTERN = re.compile(r"(16|17|18)\s*dec|dec\s*(16|17|18)|12[/\-](16|17|18)|12月(16|17|18)", re.IGNORECASE)
+DEC_DATE_PATTERN = re.compile(
+    r"(16|17|18)\s*dec|dec\s*(16|17|18)|12[/\-](16|17|18)|12月(16|17|18)",
+    re.IGNORECASE,
+)
 
 NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "").strip()
 NTFY_TOKEN = os.environ.get("NTFY_TOKEN", "").strip()
 DISCORD_WEBHOOK = os.environ.get("DISCORD_WEBHOOK", "").strip()
 TEST_ALERT = os.environ.get("TEST_ALERT", "false").lower() == "true"
 
+# Run for 11 minutes total (leaving plenty of buffer inside a 20-minute job timeout)
 RUN_FOR_SECONDS = 11 * 60
 SLEEP_SECONDS = 30
 
@@ -94,7 +98,6 @@ def scan_once(browser) -> list[str]:
         if "icirena.ai" in response.url and response.request.resource_type in ("xhr", "fetch"):
             try:
                 text = response.text()
-                # Only keep payloads relevant to Lisboeta Macau (57011) or cinema schedules
                 if "57011" in text or "lisboeta" in text.lower() or "schedule" in response.url.lower():
                     api_blobs.append(text)
             except Exception:
@@ -107,7 +110,6 @@ def scan_once(browser) -> list[str]:
             page.goto(url, wait_until="networkidle", timeout=30000)
             page.wait_for_timeout(1500)
 
-            # If a mid-December date tab appears on Lisboeta's page, click it to trigger its signed schedule call
             try:
                 dec_tabs = page.get_by_text(DEC_DATE_PATTERN)
                 if dec_tabs.count() > 0:
@@ -136,7 +138,7 @@ def main() -> None:
         print("Test alert confirmed.")
         return
 
-with sync_playwright() as p:
+    with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         try:
             deadline = time.monotonic() + RUN_FOR_SECONDS
